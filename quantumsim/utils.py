@@ -1,9 +1,9 @@
-#mbd = 24
-#mbd2 = 24
+mbd = 24
+mbd2 = 24
 printinfo = False
 
 class Config:
-    mbd = 24
+    mbd = 30
 
 def set_mbd(value):
     Config.mbd = value
