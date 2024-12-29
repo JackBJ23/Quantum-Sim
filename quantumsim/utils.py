@@ -2054,9 +2054,8 @@ def Gaussian_GR(m, σ, μ=0, a=None, b=None, method='exact', **kwdargs):
     else:
         raise Exception(f'Unknown method {method}')
 
-  # file 2 (for gaussianMPS):
-  def Gaussian2Ising(m, Σ, a, b):
-
+# file 2 (for gaussianMPS):
+def Gaussian2Ising(m, Σ, a, b):
     a = np.asarray(a)
     b = np.asarray(b)
     Σ = np.asarray(Σ)
