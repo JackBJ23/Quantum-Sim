@@ -2294,7 +2294,7 @@ def mpo_drift(n, δt, δx, μ, D, **kwdargs):
     return mpo_combined(n, a, b, c, **kwdargs) # = a*Id + b*S^+ + c*S^- (in MPO form; n controls its shape)
 
 ## For making a video of time evolution of solution:
-def get_gif(ncurves, mps_fcts, ψ_euler, ψ_analytical, x1, x2, x3, x4, duration_t, bond1, bond2, bond3, bond4, namefile):
+def get_gif(ncurves, x, mps_fcts, ψ_euler, ψ_analytical, x1, x2, x3, x4, duration_t, bond1, bond2, bond3, bond4, namefile):
   filenames = []
   for i in range(len(ψ_analytical)):
       #if i==16: break
@@ -2335,7 +2335,7 @@ def get_gif(ncurves, mps_fcts, ψ_euler, ψ_analytical, x1, x2, x3, x4, duration
 Plots the evolution over time of the supremum error between each function mps_fctns[b][i] (bond dim Xi), ψ_r, and ψ_analytical. 
 Plots all curves (number: ncurves) at the same time. Bonds are b1,..,4.
 '''
-def errors_fctns_analytical(nfctns, mps_fcts, ψ_euler, ψ_analytical, b1, b2, b3, b4):
+def plot_errors(nfctns, times, mps_fcts, ψ_euler, ψ_analytical, b1, b2, b3, b4):
   maxdifs = []
   for k in range(nfctns): ## number of different mps solutions used (1, 2, 3, or 4)
     difs = [] # list of absolute differences
