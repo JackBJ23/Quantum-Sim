@@ -2335,7 +2335,7 @@ def get_gif(ncurves, x, mps_fcts, ψ_euler, ψ_analytical, x1, x2, x3, x4, durat
 Plots the evolution over time of the supremum error between each function mps_fctns[b][i] (bond dim Xi), ψ_r, and ψ_analytical. 
 Plots all curves (number: ncurves) at the same time. Bonds are b1,..,4.
 '''
-def plot_errors(nfctns, times, mps_fcts, ψ_euler, ψ_analytical, b1, b2, b3, b4):
+def plot_errors(nfctns, times, mps_fcts, ψ_euler, ψ_analytical, b1, b2, b3, b4, filename):
   maxdifs = []
   for k in range(nfctns): ## number of different mps solutions used (1, 2, 3, or 4)
     difs = [] # list of absolute differences
@@ -2346,6 +2346,7 @@ def plot_errors(nfctns, times, mps_fcts, ψ_euler, ψ_analytical, b1, b2, b3, b4
   difs_euler = []
   for i in range(n_times): difs_euler.append(max(abs(ψ_euler[i] - ψ_analytical[i])))
 
+  plt.figure()
   plt.plot(times, maxdifs[0], label=f'X={b1}', color='orange')
   if nfctns>=2: plt.plot(times, maxdifs[1], label=f'X={b2}', color='red')
   if nfctns>=3: plt.plot(times, maxdifs[2], label=f'X={b3}', color='pink')
@@ -2355,6 +2356,5 @@ def plot_errors(nfctns, times, mps_fcts, ψ_euler, ψ_analytical, b1, b2, b3, b4
   plt.xlabel("Time (s)")
   plt.ylabel("$||\\psi-\\phi||_\\infty$")
   plt.tight_layout()
-  plt.show()
+  plt.savefig(filename)
   return 0
-
