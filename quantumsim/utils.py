@@ -1,5 +1,5 @@
-mbd = 40
-mbd2 = 40
+mbd = 24
+mbd2 = 24
 printinfo = False
 
 # Code for MPS, MPOs, and ladder operators:
