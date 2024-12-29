@@ -1,16 +1,13 @@
-mbd = 24
-mbd2 = 24
 printinfo = False
 
+# for controlling the MBD of MPSs and MPOs:
 class Config:
-    mbd = 30
+    mbd = 24
+    mbd2 = 24
 
-def set_mbd(value):
-    Config.mbd = value
-
-def some_function(x):
-    print("mbd", Config.mbd)
-    return x + Config.mbd
+def set_mbd(a, b):
+    Config.mbd = a
+    Config.mbd2 = b
 
 # Code for MPS, MPOs, and ladder operators:
 
@@ -190,7 +187,7 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
     return output
 
 
-def _truncate_vector(S, tolerance, max_bond_dimension=mbd):
+def _truncate_vector(S, tolerance, max_bond_dimension=Config.mbd):
     """Given a vector of Schmidt numbers `S`, a `tolerance` and a maximum
     bond `max_bond_dimension`, determine where to truncate the vector and return
     the absolute error in norm-2 made by that truncation.
@@ -307,7 +304,7 @@ class MPS(TensorArray):
     __array_priority__ = 10000
     def __init__(self, data, error=0, maxsweeps=16,
                  tolerance=DEFAULT_TOLERANCE,
-                 normalize=False, max_bond_dimension=mbd):
+                 normalize=False, max_bond_dimension=Config.mbd):
         super(MPS, self).__init__(data)
         assert data[0].shape[0] == data[-1].shape[-1] == 1
         self._error = error
@@ -545,7 +542,7 @@ class MPSSum():
     __array_priority__ = 10000
     def __init__(self, weights, states, maxsweeps=16,
                  tolerance=DEFAULT_TOLERANCE,
-                 normalize=False, max_bond_dimension=mbd):
+                 normalize=False, max_bond_dimension=Config.mbd):
         self.weights = weights
         self.states = states
         self.maxsweeps = maxsweeps
@@ -883,7 +880,7 @@ def _canonicalize(Ψ, center, tolerance, normalize):
         err += errk
     return err
 
-def left_orth_2site(AA, tolerance, normalize, max_bond_dimension = mbd):
+def left_orth_2site(AA, tolerance, normalize, max_bond_dimension = Config.mbd):
     α, d1, d2, β = AA.shape
     Ψ = np.reshape(AA, (α*d1, β*d2))
     U, S, V = scipy.linalg.svd(Ψ, full_matrices=False, lapack_driver='gesvd')
@@ -895,7 +892,7 @@ def left_orth_2site(AA, tolerance, normalize, max_bond_dimension = mbd):
     SV = np.reshape( np.reshape(S, (D,1)) * V[:D,:], (D,d2,β) )
     return U, SV, err
 
-def right_orth_2site(AA, tolerance, normalize, max_bond_dimension = mbd):
+def right_orth_2site(AA, tolerance, normalize, max_bond_dimension = Config.mbd):
     α, d1, d2, β = AA.shape
     Ψ = np.reshape(AA, (α*d1, β*d2))
     U, S, V = scipy.linalg.svd(Ψ, full_matrices=False, lapack_driver='gesvd')
@@ -989,7 +986,7 @@ class CanonicalMPS(MPS):
         self.update_error(err)
         return err
 
-    def update_2site(self, AA, site, direction, tolerance=DEFAULT_TOLERANCE, normalize=False, max_bond_dimension = mbd):
+    def update_2site(self, AA, site, direction, tolerance=DEFAULT_TOLERANCE, normalize=False, max_bond_dimension = Config.mbd):
         """Split a two-site tensor into two one-site tensors by
         left/right orthonormalization and insert the tensor in
         canonical form into the MPS Ψ at the given site and the site
@@ -1087,7 +1084,7 @@ class MPO(TensorArray):
         maxsweeps=16,
         tolerance=DEFAULT_TOLERANCE,
         normalize=False,
-        max_bond_dimension=mbd2, #changed from None
+        max_bond_dimension=Config.mbd2, #changed from None
     ):
         super(MPO, self).__init__(data)
         assert data[0].shape[0] == data[-1].shape[-1] == 1
@@ -1288,7 +1285,7 @@ class MPOList(object):
         maxsweeps=4,
         tolerance=DEFAULT_TOLERANCE,
         normalize=False,
-        max_bond_dimension=mbd2,
+        max_bond_dimension=Config.mbd2,
     ):
         self.mpos = mpos
         self.maxsweeps = maxsweeps
@@ -1464,7 +1461,7 @@ class MPOSum(object):
         maxsweeps=4,
         tolerance=DEFAULT_TOLERANCE,
         normalize=False,
-        max_bond_dimension=mbd2,
+        max_bond_dimension=Config.mbd2,
     ):
         self.mpos = mpos
         if weights is None:
@@ -1746,7 +1743,7 @@ class AntilinearForm:
 
 def simplify(ψ, maxsweeps=4, direction=+1,
              tolerance=DEFAULT_TOLERANCE, normalize=True,
-             max_bond_dimension=mbd):
+             max_bond_dimension=Config.mbd):
     """Simplify an MPS ψ transforming it into another one with a smaller bond
     dimension, sweeping until convergence is achieved.
 
@@ -1825,7 +1822,7 @@ def multi_norm2(α, ψ):
 
 def combine(weights, states, guess=None, maxsweeps=4, direction=+1,
             tolerance=DEFAULT_TOLERANCE, normalize=True,
-            max_bond_dimension=mbd):
+            max_bond_dimension=Config.mbd):
     """Simplify an MPS ψ transforming it into another one with a smaller bond
     dimension, sweeping until convergence is achieved.
 
@@ -1928,16 +1925,16 @@ def cgs(A, b, guess=None, maxiter=100, tolerance=DEFAULT_TOLERANCE):
         Ap = A.apply(p) # = mps2 * p
         α = ρ / scprod(p, Ap).real # <p|p> / <p|Ap>
         if x is not None:
-            x, err = combine([1, α], [x, p], tolerance=tolerance, normalize=False, max_bond_dimension=mbd)
+            x, err = combine([1, α], [x, p], tolerance=tolerance, normalize=False, max_bond_dimension=Config.mbd)
         else: #here:
-            x, err = combine([α], [p], tolerance=tolerance, normalize=False, max_bond_dimension=mbd) #added: max_bond_dimension=8
-        r, err = combine([1, -1], [b, A.apply(x)], tolerance=tolerance, normalize=False, max_bond_dimension=mbd) #added: max_bond_dimension=8
+            x, err = combine([α], [p], tolerance=tolerance, normalize=False, max_bond_dimension=Config.mbd) #added: max_bond_dimension=8
+        r, err = combine([1, -1], [b, A.apply(x)], tolerance=tolerance, normalize=False, max_bond_dimension=Config.mbd) #added: max_bond_dimension=8
         ρ, ρold = scprod(r, r).real, ρ
         ρ2 = multi_norm2([1.0, -1.0], [b, A.apply(x)])
         if ρ < tolerance * normb:
             if printinfo: log(f'Breaking on convergence')
             break
-        p, err = combine([1., ρ/ρold], [r, p], tolerance=tolerance, normalize=False, max_bond_dimension=mbd) #added: max_bond_dimension=8
+        p, err = combine([1., ρ/ρold], [r, p], tolerance=tolerance, normalize=False, max_bond_dimension=Config.mbd) #added: max_bond_dimension=8
         if printinfo: log(f'Iteration {i:5}: |r|={ρ:5g}')
     return x, abs(ρ)
 
@@ -2157,10 +2154,10 @@ def GaussianMPS(m, Σ, a=None, b=None, d=1, GR=True, reorder=False, fft=False, d
 
     # added: max_bond_dimension=8
     if GR:
-        ψmps = MPS([np.ones((1,2,1))/np.sqrt(2.0)]*(m*d), max_bond_dimension=mbd)
+        ψmps = MPS([np.ones((1,2,1))/np.sqrt(2.0)]*(m*d), max_bond_dimension=Config.mbd)
     else: # goes here
         # produce an inicialized mps using MPS:
-        ψmps = MPS([np.ones((1,2,1))]*(m*d), max_bond_dimension=mbd) # = [[1/sqrt(2),1/sqrt(2)],..10)..,[1/sqrt(2),1/sqrt(2)]]
+        ψmps = MPS([np.ones((1,2,1))]*(m*d), max_bond_dimension=Config.mbd) # = [[1/sqrt(2),1/sqrt(2)],..10)..,[1/sqrt(2),1/sqrt(2)]]
     # apply the mpos on the initialized ψmps:
     for i in range(steps): #steps=1
         ψmps = mpos.apply(ψmps) # = mpos * ψmps
