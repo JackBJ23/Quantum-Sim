@@ -5,7 +5,7 @@ class Config:
     mbd = 24
     mbd2 = 24
 
-def set_mbd(a, b):
+def set_mbds(a, b):
     Config.mbd = a
     Config.mbd2 = b
 
