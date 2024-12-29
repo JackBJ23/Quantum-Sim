@@ -16,7 +16,11 @@ from math import pi as π
 epsilon = np.finfo(np.float64).eps
 from scipy.special import erf
 from numpy import cos, sin, exp
+import os
 import os.path
+
+# For animations:
+import imageio
 
 def begin_environment(χ=1):
     """Initiate the computation of a left environment from two MPS. The bond
@@ -2289,3 +2293,69 @@ def mpo_drift(n, δt, δx, μ, D, **kwdargs):
     print(f'Coefficients: a={a}, b={b}, c={c}')
     print("mpodrif", n, a, b, c)
     return mpo_combined(n, a, b, c, **kwdargs) # = a*Id + b*S^+ + c*S^- (in MPO form; n controls its shape)
+
+## For making a video of time evolution of solution:
+def get_gif(ncurves, mps_fcts, ψ_euler, ψ_analytical, x1, x2, x3, x4, duration_t, bond1, bond2, bond3, bond4, namefile):
+  filenames = []
+  for i in range(len(ψ_analytical)):
+      #if i==16: break
+      plt.figure(figsize=(8, 6))
+
+      plt.xlim(x1,x2)
+      plt.ylim(x3,x4)
+
+      plt.plot(x, mps_fcts[0][i], label=f'MPS {i}, X={16}', color='orange')
+      plt.plot(x, mps_fcts[1][i], label=f'MPS {i}, X={24}', color='red')
+      plt.plot(x, ψ_euler[i], label=f'Classical {i}', color='green')
+      plt.plot(x, ψ_analytical[i], label=f'Real {i}', color='purple')
+      plt.title('Evolution of Curves')
+      plt.xlabel('x')
+      plt.ylabel('P(x)')
+      plt.legend()
+      plt.grid(True)
+
+      # Save each frame as a file
+      filename = f'frame_{i}.png'
+      plt.savefig(filename)
+      plt.close()
+      filenames.append(filename)
+
+  # Create an animated gif
+  with imageio.get_writer(namefile, mode='I', duration=duration_t) as writer:
+      for filename in filenames:
+          image = imageio.imread(filename)
+          writer.append_data(image)
+
+      # Remove files
+      for filename in filenames:
+          os.remove(filename)
+
+  print("GIF created successfully!")
+
+'''
+Plots the evolution over time of the supremum error between each function mps_fctns[b][i] (bond dim Xi), ψ_r, and ψ_analytical. 
+Plots all curves (number: ncurves) at the same time. Bonds are b1,..,4.
+'''
+def errors_fctns_analytical(nfctns, mps_fcts, ψ_euler, ψ_analytical, b1, b2, b3, b4):
+  maxdifs = []
+  for k in range(nfctns): ## number of different mps solutions used (1, 2, 3, or 4)
+    difs = [] # list of absolute differences
+    n_times = len(mps_fcts[0]) # =len(times)
+    for i in range(n_times):
+      difs.append(max(abs(mps_fcts[k][i] - ψ_analytical[i]))) #maxdif between mps fctn and analytical solution at time i
+    maxdifs.append(difs) #maxdifs[k]= max difs between mps[k] and real solution during interval times
+  difs_euler = []
+  for i in range(n_times): difs_euler.append(max(abs(ψ_euler[i] - ψ_analytical[i])))
+
+  plt.plot(times, maxdifs[0], label=f'X={b1}', color='orange')
+  if nfctns>=2: plt.plot(times, maxdifs[1], label=f'X={b2}', color='red')
+  if nfctns>=3: plt.plot(times, maxdifs[2], label=f'X={b3}', color='pink')
+  if nfctns>=4: plt.plot(times, maxdifs[3], label=f'X={b4}', color='blue')
+  plt.plot(times, difs_euler, label=f'Classical', color='black')
+  plt.legend()
+  plt.xlabel("Time (s)")
+  plt.ylabel("$||\\psi-\\phi||_\\infty$")
+  plt.tight_layout()
+  plt.show()
+  return 0
+
