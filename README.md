@@ -3,7 +3,7 @@
 To install the `quantumsim` library:
 
 ```
-https://github.com/JackBJ23/Quantum-Sim.git
+pip install git+https://github.com/JackBJ23/Quantum-Sim.git
 ```
 
 To clone the repository with experiments:
