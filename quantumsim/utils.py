@@ -1,6 +1,16 @@
-mbd = 24
-mbd2 = 24
+#mbd = 24
+#mbd2 = 24
 printinfo = False
+
+class Config:
+    mbd = 24
+
+def set_mbd(value):
+    Config.mbd = value
+
+def some_function(x):
+    print("mbd", Config.mbd)
+    return x + Config.mbd
 
 # Code for MPS, MPOs, and ladder operators:
 
