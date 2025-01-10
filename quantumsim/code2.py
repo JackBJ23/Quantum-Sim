@@ -2293,23 +2293,23 @@ def mpo_drift(n, δt, δx, μ, D, **kwdargs):
     print("mpodrif", n, a, b, c)
     return mpo_combined(n, a, b, c, **kwdargs) # = a*Id + b*S^+ + c*S^- (in MPO form; n controls its shape)
 
-## For making a video of time evolution of solution:
+## For making a video of time evolution of solution: (analytical, Euler, and MPS with 4 bond dimensions)
 def get_gif(ncurves, x, mps_fcts, ψ_euler, ψ_analytical, x1, x2, x3, x4, duration_t, bond1, bond2, bond3, bond4, namefile):
   filenames = []
   for i in range(len(ψ_analytical)):
       #if i==16: break
       plt.figure(figsize=(8, 6))
-
       plt.xlim(x1,x2)
       plt.ylim(x3,x4)
-
-      plt.plot(x, mps_fcts[0][i], label=f'MPS {i}, X={16}', color='orange')
-      plt.plot(x, mps_fcts[1][i], label=f'MPS {i}, X={24}', color='red')
-      plt.plot(x, ψ_euler[i], label=f'Classical {i}', color='green')
-      plt.plot(x, ψ_analytical[i], label=f'Real {i}', color='purple')
-      plt.title('Evolution of Curves')
+      plt.plot(x, mps_fcts[0][i], label=f'MPS {i}, X={bond1}', color='orange')
+      plt.plot(x, mps_fcts[1][i], label=f'MPS {i}, X={bond2}', color='red')
+      plt.plot(x, mps_fcts[2][i], label=f'MPS {i}, X={bond3}', color='green')
+      plt.plot(x, mps_fcts[3][i], label=f'MPS {i}, X={bond4}', color='blue')
+      plt.plot(x, ψ_euler[i], label=f'Classical {i}', color='purple')
+      plt.plot(x, ψ_analytical[i], linestyle='--', label=f'Real {i}', color='black')
+      plt.title('Time evolution of simulations of the diffusion equation')
       plt.xlabel('x')
-      plt.ylabel('P(x)')
+      plt.ylabel('f(x)')
       plt.legend()
       plt.grid(True)
 
