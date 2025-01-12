@@ -1188,6 +1188,7 @@ class MPO(TensorArray):
         if isinstance(b, MPSSum):
             b = b.toMPS()
         if isinstance(b, MPS):
+            print("self.size, b.size", self.size, b.size)
             assert self.size == b.size
             if printinfo: log(f"Total error before applying MPO {b.error()}")
             err = 0.0
