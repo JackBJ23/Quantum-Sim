@@ -1581,7 +1581,13 @@ class MPOSum(object):
             b = b.toMPS()
         states = []
         for mpo in self.mpos:
+            print("mposum")
+            for i in range(b.size): print(b[i].shape)
             state = mpo.apply(b)
+            # added aaaa:
+            print("after")
+            for i in range(state.size): print(state[i].shape)
+            ####
             err = 0.0
             if self.simplify and not mpo.simplify:
                 state, err, _ = simplify(
