@@ -1198,18 +1198,11 @@ class MPO(TensorArray):
             assert self.size == b.size
             if printinfo: log(f"Total error before applying MPO {b.error()}")
             err = 0.0
-            # print(f"MPO simplify {self.simplify}")
-            print("before")
-            for i in range(b.size): print(b[i].shape)
-            
+            # print(f"MPO simplify {self.simplify}")   
             b = MPS(
                 [mpo_multiply_tensor(A, B) for A, B in zip(self._data, b)],
                 error=b.error(),
             )
-            ## aaaaaa
-            print("after")
-            for i in range(b.size): print(b[i].shape)
-            
             if self.simplify: # it is true
                 b, err, _ = simplify(
                     b,
@@ -1588,13 +1581,7 @@ class MPOSum(object):
             b = b.toMPS()
         states = []
         for mpo in self.mpos:
-            print("mposum")
-            for i in range(b.size): print(b[i].shape)
             state = mpo.apply(b)
-            # added aaaa:
-            print("after")
-            for i in range(state.size): print(state[i].shape)
-            ####
             err = 0.0
             if self.simplify and not mpo.simplify:
                 state, err, _ = simplify(
