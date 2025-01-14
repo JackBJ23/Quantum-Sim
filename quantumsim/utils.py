@@ -1199,10 +1199,17 @@ class MPO(TensorArray):
             if printinfo: log(f"Total error before applying MPO {b.error()}")
             err = 0.0
             # print(f"MPO simplify {self.simplify}")
+            print("before")
+            for i in range(b.size): print(b[i].shape)
+            
             b = MPS(
                 [mpo_multiply_tensor(A, B) for A, B in zip(self._data, b)],
                 error=b.error(),
             )
+            ## aaaaaa
+            print("after")
+            for i in range(b.size): print(b[i].shape)
+            
             if self.simplify: # it is true
                 b, err, _ = simplify(
                     b,
