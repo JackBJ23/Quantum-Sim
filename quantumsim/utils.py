@@ -2573,7 +2573,7 @@ def quantum_simulator_hn(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, 
     ψ_euler = [ψ0]
     npars = [num_elements(ψmps0)]
     for t in times[1:]:
-        if step % 10 ==0: plot_functions(x, ψ_qi[-1], ψ_euler[-1], ψ_analytical[step], step)
+        # if step % 10 ==0: plot_functions(x, ψ_qi[-1], ψ_euler[-1], ψ_analytical[step], step)
         step += 1
         print("t: ", t)
         pars = 0
@@ -2654,7 +2654,7 @@ def get_mpos_2(n, δt, δx, v, **kwdargs):
     return mpo1, mpo2
 
 # given N and an mbd, makes the simulation with the QI method and the Euler method: ψ_euler, ψ_qi (shapes (timesteps, xsteps))
-def quantum_simulator_hp(N0, T, timesteps, v=1.0, σ=1.0, mbd=16):
+def quantum_simulator_hp(N, T, timesteps, v=1.0, σ=1.0, mbd=16):
     """
     N: discretization, mbd, a: xmax, steps=timesteps
     v=1.0: equation
@@ -2664,7 +2664,6 @@ def quantum_simulator_hp(N0, T, timesteps, v=1.0, σ=1.0, mbd=16):
     - evolution of the error (qi, analytical) over time
     - evolution of the error (classical, analytical) over time
     """
-    N = 10
     b = 10. * 2**(N-10)
     a=-b
     scalefactor = 204.8 * 2**(N-12) / 2**(N-10)
@@ -2696,7 +2695,7 @@ def quantum_simulator_hp(N0, T, timesteps, v=1.0, σ=1.0, mbd=16):
     npars = [num_elements(ψmps0)]
     # print(f'int(ψ)={np.sum(ψ0)}, |ψ|={np.linalg.norm(ψ0)}') #state at t=0
     for t in times[1:]:
-        if step % 1 ==0: plot_functions(x, ψ_qi[-1], ψ_euler[-1], ψ_analytical[step], step)
+        # if step % 1 ==0: plot_functions(x, ψ_qi[-1], ψ_euler[-1], ψ_analytical[step], step)
         step += 1
         print("t: ", t)
         pars = 0
