@@ -2632,7 +2632,106 @@ def get_analytical_qi_euler_hn(N, scalefactor, b, T, steps, v, σ, mbds):
     errors_mbds_euler.append(errors_euler)
     return functions_qi, function_euler, ψ_analytical
 
-### 3. For performing the non-classical simulations:
+### 4. For higher-precision simulations:
+def get_mpos_2(n, δt, δx, v, **kwdargs):
+    ## get Id, S^+ and S^-:
+    id = mpo_combined(n, 1., 0, 0, **kwdargs)
+    up = mpo_combined(n, 0, 1., 0, **kwdargs) # = a*Id + b*S^+ + c*S^- (in MPO form; n controls its shape)
+    down = mpo_combined(n, 0, 0, 1., **kwdargs)
+    ## get (S^+)**2:
+    up_sqr = MPOList(mpos=[up, up]) ## = up@up = (S^+)**2 (in MPO form) -> print(up2.tomatrix())
+    down_sqr = MPOList(mpos=[down, down])
+    A = δt * v / (24 * δx**2)
+    print("A", A)
+    ## put all together in a single MPO:
+    c_id = 1 - A * 30
+    c_up = A * 16
+    c_down = A * 16
+    c_up_sqr = - A
+    c_down_sqr = - A
+    mpo1 = MPOSum(mpos=[id, down, down_sqr, up, up_sqr], weights=[c_id, c_down, c_down_sqr, c_up, c_up_sqr])
+    # same, but replace A by -A:
+    A = - δt * v / (24 * δx**2)
+    ## put all together in a single MPO:
+    c_id = 1 - A * 30
+    c_up = A * 16
+    c_down = A * 16
+    c_up_sqr = - A
+    c_down_sqr = - A
+    mpo2 = MPOSum(mpos=[id, down, down_sqr, up, up_sqr], weights=[c_id, c_down, c_down_sqr, c_up, c_up_sqr])
+    return mpo1, mpo2
+
+# given N and an mbd, makes the simulation with the QI method and the Euler method: ψ_euler, ψ_qi (shapes (timesteps, xsteps))
+def quantum_simulator_hp(N0, T, timesteps, v=1.0, σ=1.0, mbd=16):
+    """
+    N: discretization, mbd, a: xmax, steps=timesteps
+    v=1.0: equation
+    σ=1.0: initial state
+    Prints:
+    - evolution of the number of parameters in the MPS over time
+    - evolution of the error (qi, analytical) over time
+    - evolution of the error (classical, analytical) over time
+    """
+    N = 10
+    b = 10. * 2**(N-10)
+    a=-b
+    scalefactor = 204.8 * 2**(N-12) / 2**(N-10)
+    δx = (b-a)/2**N
+    step = 0
+    times = np.linspace(0, T, timesteps)
+    δt = times[1]
+    set_mbds(mbd, mbd) # mbd2=mbd
+    x = np.linspace(-b, b, 2**N)
+    ψ_analytical = np.zeros((timesteps, 2**N))
+    i = 0
+    for ti in times:
+      j = 0
+      for xi in x:
+        ψ_analytical[i][j] = diffusion_analytical(ti, xi, σ, v)
+        j += 1
+      i += 1
+    ψmps0 = GaussianMPS(N, σ, a=a, b=b, GR=False, simplify=True, normalize=False, debug='norm')
+    # Add a normalization factor to normalize the Gaussian function:
+    ψmps0 = ψmps0 * scalefactor # b=20: *102. N=12, b=10: *204.
+    ψ0 = ψmps0.tovector() #-> vector of size 2^N
+    mpo1, mpo2 = get_mpos_2(N, δt, δx, v, simplify=True)
+    op1 = sp.csr_matrix(mpo1.tomatrix()) # becomes a 1024x1024 matrix, and sp.csr_matrix compresses the matrix into a Compressed Sparse Row (CSR) format
+    op2 = sp.csr_matrix(mpo2.tomatrix())
+    # express initial MPS as 1D vector:
+    ψ_qi = [ψ0] #[1024-length vector]
+    ψ_euler = [ψ0]
+    print(ψ0[2**(N-1)])
+    npars = [num_elements(ψmps0)]
+    print(f'int(ψ)={np.sum(ψ0)}, |ψ|={np.linalg.norm(ψ0)}') #state at t=0
+    for t in times[1:]:
+        print("len", len(ψmps0._data))
+        if step % 1 ==0: plot_functions(x, ψ_qi[-1], ψ_euler[-1], ψ_analytical[step], step)
+        step += 1
+        print("t: ", t)
+        pars = 0
+        # Classical:
+        ψ0 = sp.linalg.spsolve(op2, op1 @ ψ0)
+        ψ_euler.append(ψ0)
+        n0 = np.linalg.norm(ψ0)
+        # QI:
+        ψmps0, err = cgs(mpo2, mpo1.apply(ψmps0))
+        ψ1 = ψmps0.tovector()
+        n1 = np.linalg.norm(ψ1)
+        sc = 1 - np.vdot(ψ1, ψ0)/(n1*n0)
+        print(f'int(ψ)={np.sum(ψ0):5f}, |ψ|={n0:5f}, |ψmps|={n1:5f}, sc={sc:5g}, err={err:5g}')
+        ψ_qi.append(ψ1)
+        npars.append(num_elements(ψmps0))
+
+    # get max errors between the 2 functions and the real function:
+    errors_qi = [max_abs_dif(ψ_qi[i], ψ_analytical[i]) for i in range(len(ψ_qi))]
+    errors_euler = [max_abs_dif(ψ_euler[i], ψ_analytical[i]) for i in range(len(ψ_euler))]
+    print(f"N {N}, MBD {mbd}: pars:", npars) # npars: list of length time-steps indicating the size of ψmps0 along the simulations times
+    print("errors_qi", errors_qi)
+    print("errors_euler", errors_euler)
+
+    return errors_qi, errors_euler
+
+### 4. For performing the non-classical simulations:
 def plot_functions_nonclassic(x, ψ_qi, ψ_analytical_t, step):
   print("Step:", step)
   plt.figure(figsize=(8, 6))
@@ -2709,5 +2808,3 @@ def quantum_simulator_nonclassic(N, scalefactor, x, times, ψ_analytical, b=10.,
 
     print(f"N {N}, MBD {mbd}: pars:", npars) # npars: list of length time-steps indicating the size of ψmps0 along the simulations times
     return errors
-
-### 4. For higher-precision simulations:
