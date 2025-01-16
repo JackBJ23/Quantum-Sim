@@ -2365,3 +2365,351 @@ def plot_errors(nfctns, times, mps_fcts, ψ_euler, ψ_analytical, b1, b2, b3, b4
   plt.tight_layout()
   plt.savefig(filename)
   return 0
+
+### CODE FOR QUANTUM-INSPIRED SIMULATORS
+### (Using the previous functions and classes)
+
+def plot_functions(x, ψ_qi, ψ_euler, ψ_analytical_t, step):
+  print("Step:", step)
+  plt.figure(figsize=(8, 6))
+  plt.xlim(-10.,10.)
+  plt.ylim(-0.05,0.45)
+  plt.plot(x, ψ_qi, label='ψmps')
+  plt.plot(x, ψ_euler, label='Classical')
+  plt.plot(x, ψ_analytical_t, label='Analytical')
+  plt.legend()
+  plt.show()
+  plt.close()
+
+## generate analytical solution (steps (=30) lists of length 2**N. analytical[i][x]: at time i, pos x):
+def diffusion_analytical(t, x, σ, v):
+    return (1 / math.sqrt(2 * math.pi * (σ**2 + 2 * v * t))) * math.exp(-x**2 / (2 * (σ**2 + 2 * v * t)))
+
+def max_abs_dif(f1, f2):
+    # Computes the maximum of the absolute differences between two lists.
+    if len(f1) != len(f2):
+        raise ValueError("The input lists must have the same length.")
+    abs_differences = [abs(a - b) for a, b in zip(f1, f2)]
+    return max(abs_differences)
+
+def num_elements(ψmps0):
+    pars = 0
+    for j in range(N): # calculate the number of elements in each block of the MPS (N blocks)
+        pars += ψmps0._data[j].shape[0] * ψmps0._data[j].shape[1] * ψmps0._data[j].shape[2]
+    return pars
+
+# For making the animation:
+def get_video(mps_fcts, ψ_euler, ψ_analytical, duration_t, namefile):
+  filenames = []
+  for i in range(len(ψ_analytical)): # n_times
+      plt.figure(figsize=(8, 6))
+      plt.xlim(-10.,10.)
+      plt.ylim(-0.05,0.45)
+      plt.plot(x, ψ_euler[i], label=f'Classical', color='pink', linestyle='--', marker='o', markersize=2)
+      plt.plot(x, mps_fcts[0][i], label=f'QI, χ={12}', color='orange')
+      plt.plot(x, mps_fcts[1][i], label=f'QI, χ={16}', color='red')
+      plt.plot(x, mps_fcts[2][i], label=f'QI, χ={20}', color='green')
+      plt.plot(x, mps_fcts[3][i], label=f'Qi, χ={24}', color='blue')
+      plt.plot(x, ψ_analytical[i], label=f'Analytical, Time: {(i+1)/30:.2f} s.', color='black', linestyle='--')
+      plt.title('Time evolution of solutions')
+      plt.xlabel('x')
+      plt.ylabel('f(x)')
+      plt.legend()
+      plt.grid(False)
+      # Save each frame as a file
+      filename = f'frame_{i}.png'
+      plt.savefig(filename)
+      plt.close()
+      filenames.append(filename)
+  # Create an animated gif
+  with imageio.get_writer(namefile, mode='I', duration=duration_t) as writer:
+      for filename in filenames:
+          image = imageio.imread(filename)
+          writer.append_data(image)
+      # Remove files
+      for filename in filenames:
+          os.remove(filename)
+  print("GIF created successfully!")
+
+# Example to call it: get_video(functions_qi, function_euler, ψ_analytical, 500, 'evolutions_N14.gif')
+
+### 1. Makes the simulation with the QI method and the Euler method, returning ψ_euler, ψ_qi (shapes (timesteps, xsteps)), and the errors:
+def quantum_simulator(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, σ=1.0, mbd=20):
+    """
+    N: discretization, mbd, a: xmax, steps=timesteps
+    v=1.0: equation
+    σ=1.0: initial state
+    Prints:
+    - evolution of the number of parameters in the MPS over time
+    - evolution of the error (qi, analytical) over time
+    - evolution of the error (classical, analytical) over time
+    """
+    a=-b
+    δx = (b-a)/2**N
+    δt = times[1]
+    set_mbds(mbd, mbd) # mbd2=mbd
+    print("MBD", quantumsim.Config.mbd)
+    step = 0
+    ψmps0 = GaussianMPS(N, σ, a=a, b=b, GR=False, simplify=True, normalize=False, debug='norm')
+    # Add a normalization factor to normalize the Gaussian function:  
+    ψmps0 = ψmps0 * scalefactor # b=20: *102. N=12, b=10: *204.
+    ψ0 = ψmps0.tovector() #-> vector of size 2^N
+    mpo1 = mpo_combined(N, 1-v*δt/(δx**2), v*δt/(2*δx**2), v*δt/(2*δx**2), simplify=True) #changed simplify=False. MPO object, but corresponds to a time-evolution operator
+    mpo2 = mpo_combined(N, 1+v*δt/(δx**2), -v*δt/(2*δx**2), -v*δt/(2*δx**2), simplify=True)
+    global mattt, op1, op2
+    mattt = mpo1.tomatrix()
+    op1 = sp.csr_matrix(mpo1.tomatrix()) # becomes a 1024x1024 matrix, and sp.csr_matrix compresses the matrix into a Compressed Sparse Row (CSR) format
+    op2 = sp.csr_matrix(mpo2.tomatrix())
+    # express initial MPS as 1D vector:
+    ψ_qi = [ψ0] #[1024-length vector]
+    ψ_euler = [ψ0]
+    print(ψ0[2**(N-1)])
+    npars = [num_elements(ψmps0)]
+    print(f'int(ψ)={np.sum(ψ0)}, |ψ|={np.linalg.norm(ψ0)}') #state at t=0
+    for t in times[1:]:
+        print("len", len(ψmps0._data))
+        if step % 10 ==0: plot_functions(x, ψ_qi[-1], ψ_euler[-1], ψ_analytical[step], step)
+        step += 1
+        print("t: ", t)
+        pars = 0
+        # Classical:
+        ψ0 = sp.linalg.spsolve(op2, op1 @ ψ0)
+        ψ_euler.append(ψ0)
+        n0 = np.linalg.norm(ψ0)
+        # QI:
+        ψmps0, err = cgs(mpo2, mpo1.apply(ψmps0))
+        ψ1 = ψmps0.tovector()
+        n1 = np.linalg.norm(ψ1)
+        sc = 1 - np.vdot(ψ1, ψ0)/(n1*n0)
+        print(f'int(ψ)={np.sum(ψ0):5f}, |ψ|={n0:5f}, |ψmps|={n1:5f}, sc={sc:5g}, err={err:5g}')
+        ψ_qi.append(ψ1)
+        npars.append(num_elements(ψmps0))
+
+    # get max errors between the 2 functions and the real function:
+    errors_qi = [max_abs_dif(ψ_qi[i], ψ_analytical[i]) for i in range(len(ψ_qi))]
+    errors_euler = [max_abs_dif(ψ_euler[i], ψ_analytical[i]) for i in range(len(ψ_euler))]
+    print(f"N {N}, MBD {mbd}: pars:", npars) # npars: list of length time-steps indicating the size of ψmps0 along the simulations times
+    print("errors_qi", errors_qi)
+    print("errors_euler", errors_euler)
+
+    return ψ_euler, ψ_qi, errors_qi, errors_euler
+
+# Only given N, a scalefactor, b (i.e. solve in [-b,b], total time T, evolution steps, v (diffusion coefficient), σ (for initial state), and a list of mbds to test
+# returns the Analytical, QI, and Classical (Euler) simulations.
+def get_analytical_qi_euler(N, scalefactor, b, T, steps, v, σ, mbds):
+    a=-b
+    x = np.linspace(a, b, 2**N)
+    times = np.linspace(0, T, steps)
+    # analytical solution:
+    functions_qi, functions_euler = [], []
+    ψ_analytical = np.zeros((steps, 2**N))
+    i = 0
+    for ti in times:
+      j = 0
+      for xi in x:
+        ψ_analytical[i][j] = diffusion_analytical(ti, xi, σ, v)
+        j += 1
+      i += 1
+    print('ψ_analytical: done')
+    # classical and QI solution:
+    errors_mbds_qi, errors_mbds_euler = [], []
+    for mbd in mbds:
+      ψ_euler, ψ_qi, errors_qi, errors_euler = quantum_simulator(N, scalefactor, x, times, ψ_analytical, b, v, σ, mbd)
+      functions_qi.append(ψ_qi)
+      if mbd==12: function_euler = ψ_euler
+    errors_mbds_qi.append(errors_qi)
+    errors_mbds_euler.append(errors_euler)
+    return functions_qi, function_euler, ψ_analytical
+
+def create_sparse_matrix(n, c_0, c_up, c_down):
+    size = 2 ** n  # Size of the matrix
+    diagonals = [c_0 * np.ones(size),  # Main diagonal
+                 c_up * np.ones(size - 1),  # Diagonal above the main
+                 c_down * np.ones(size - 1)]  # Diagonal below the main
+
+    offsets = [0, 1, -1]  # 0 for main, 1 for upper, -1 for lower diagonal
+
+    sparse_matrix = sp.diags(diagonals, offsets, shape=(size, size), format='csr')  # Create CSR sparse matrix
+    return sparse_matrix
+
+### 2. Makes the simulation with the QI method and the Euler method, applicable to high N's (up to N=23).
+# Same as def quantum_simulator, but contains additional fine-tunings that enable to compute the Classical method even
+# when N>=15 (as def quantum_simulator crashes if N>=15 due to memory limits). To avoid it, we prepare a sparse matrix operator
+# for the Classical method wihout needing to compute a matrix. 
+def quantum_simulator_hn(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, σ=1.0, mbd=20):
+    """
+    N: discretization, mbd, a: xmax, steps=timesteps
+    v=1.0: equation
+    σ=1.0: initial state
+    Prints:
+    - evolution of the number of parameters in the MPS over time
+    - evolution of the error (qi, analytical) over time
+    - evolution of the error (classical, analytical) over time
+    """
+    a=-b
+    δx = (b-a)/2**N
+    δt = times[1]
+    set_mbds(mbd, mbd) # mbd2=mbd
+    print("MBD", quantumsim.Config.mbd)
+    step = 0
+    ψmps0 = GaussianMPS(N, σ, a=a, b=b, GR=False, simplify=True, normalize=False, debug='norm')
+    print("mps done")
+    global f_i
+    # Add a normalization factor to normalize the Gaussian function:
+    ψmps0 = ψmps0 * scalefactor # b=20: *102. N=12, b=10: *204.
+    f_i = ψmps0
+    ψ0 = ψmps0.tovector() #-> vector of size 2^N
+    print("vector done")
+    mpo1 = mpo_combined(N, 1-v*δt/(δx**2), v*δt/(2*δx**2), v*δt/(2*δx**2), simplify=True) #changed simplify=False. MPO object, but corresponds to a time-evolution operator
+    mpo2 = mpo_combined(N, 1+v*δt/(δx**2), -v*δt/(2*δx**2), -v*δt/(2*δx**2), simplify=True)
+    #op1 = sp.csr_matrix(mpo1.tomatrix()) # becomes a 1024x1024 matrix, and sp.csr_matrix compresses the matrix into a Compressed Sparse Row (CSR) format
+    #op2 = sp.csr_matrix(mpo2.tomatrix())
+    print("mpo done")
+    # for op1, op2:
+    c_0 = 1-v*δt/(δx**2)
+    c_up = v*δt/(2*δx**2)
+    c_down = v*δt/(2*δx**2)
+    op1 = create_sparse_matrix(N, c_0, c_up, c_down)
+    c_0 = 1+v*δt/(δx**2)
+    c_up = -v*δt/(2*δx**2)
+    c_down = -v*δt/(2*δx**2)
+    op2 = create_sparse_matrix(N, c_0, c_up, c_down)
+    # express initial MPS as 1D vector:
+    ψ_qi = [ψ0] #[1024-length vector]
+    ψ_euler = [ψ0]
+    print(ψ0[2**(N-1)])
+    npars = [num_elements(ψmps0)]
+    print(f'int(ψ)={np.sum(ψ0)}, |ψ|={np.linalg.norm(ψ0)}') #state at t=0
+    for t in times[1:]:
+        print("len", len(ψmps0._data))
+        if step % 10 ==0: plot_functions(x, ψ_qi[-1], ψ_euler[-1], ψ_analytical[step], step)
+        step += 1
+        print("t: ", t)
+        pars = 0
+        # Classical:
+        ψ0 = sp.linalg.spsolve(op2, op1 @ ψ0)
+        ψ_euler.append(ψ0)
+        n0 = np.linalg.norm(ψ0)
+        # QI:
+        ψmps0, err = cgs(mpo2, mpo1.apply(ψmps0))
+        ψ1 = ψmps0.tovector()
+        n1 = np.linalg.norm(ψ1)
+        sc = 1 - np.vdot(ψ1, ψ0)/(n1*n0)
+        print(f'int(ψ)={np.sum(ψ0):5f}, |ψ|={n0:5f}, |ψmps|={n1:5f}, sc={sc:5g}, err={err:5g}')
+        ψ_qi.append(ψ1)
+        npars.append(num_elements(ψmps0))
+
+    # get max errors between the 2 functions and the real function:
+    errors_qi = [max_abs_dif(ψ_qi[i], ψ_analytical[i]) for i in range(len(ψ_qi))]
+    errors_euler = [max_abs_dif(ψ_euler[i], ψ_analytical[i]) for i in range(len(ψ_euler))]
+    print(f"N {N}, MBD {mbd}: pars:", npars) # npars: list of length time-steps indicating the size of ψmps0 along the simulations times
+    print("errors_qi", errors_qi)
+    print("errors_euler", errors_euler)
+
+    return ψ_euler, ψ_qi, errors_qi, errors_euler
+
+# Same as def get_analytical_qi_euler, but works for higher values of N (using quantum_simulator_hn).
+def get_analytical_qi_euler_hn(N, scalefactor, b, T, steps, v, σ, mbds):
+    a=-b
+    x = np.linspace(a, b, 2**N)
+    times = np.linspace(0, T, steps)
+    # analytical solution:
+    functions_qi, functions_euler = [], []
+    ψ_analytical = np.zeros((steps, 2**N))
+    i = 0
+    for ti in times:
+      j = 0
+      for xi in x:
+        ψ_analytical[i][j] = diffusion_analytical(ti, xi, σ, v)
+        j += 1
+      i += 1
+    print('ψ_analytical: done')
+    # classical and QI solution:
+    errors_mbds_qi, errors_mbds_euler = [], []
+    for mbd in mbds:
+      ψ_euler, ψ_qi, errors_qi, errors_euler = quantum_simulator_hn(N, scalefactor, x, times, ψ_analytical, b, v, σ, mbd)
+      functions_qi.append(ψ_qi)
+      if mbd==12: function_euler = ψ_euler
+    errors_mbds_qi.append(errors_qi)
+    errors_mbds_euler.append(errors_euler)
+    return functions_qi, function_euler, ψ_analytical
+
+### 3. For performing the non-classical simulations:
+def plot_functions_nonclassic(x, ψ_qi, ψ_analytical_t, step):
+  print("Step:", step)
+  plt.figure(figsize=(8, 6))
+  plt.xlim(-10.,10.)
+  plt.ylim(-0.05,0.45)
+  plt.plot(x, ψ_qi, label='QI Simulation', color='blue')
+  plt.axhline(y=ψ_analytical_t, linestyle='--', label='Analytical', color='orange')
+  plt.legend(loc='upper right')
+  plt.savefig(f'img_{step}_nc.png')
+  plt.show()
+  plt.close()
+
+def get_video_nonclassic(timesteps, N):
+    # Create list of image file names
+    image_files = [f"img_{i}_nc.png" for i in range(timesteps)]
+    # Open images and create a list
+    images = [Image.open(img) for img in image_files]
+    # Save as GIF
+    output_gif_path = f"evolution_nc_N{N}.gif"
+    images[0].save(output_gif_path, save_all=True, append_images=images[1:], duration=200, loop=0)
+    print(f"GIF saved as {output_gif_path}")
+
+# given N and an mbd, makes the simulation with the QI method and the Euler method: ψ_euler, ψ_qi (shapes (timesteps, xsteps))
+def quantum_simulator_nonclassic(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, σ=1.0, mbd=20):
+    """
+    N: discretization, mbd, a: xmax, steps=timesteps
+    v=1.0: equation
+    σ=1.0: initial state
+    Prints:
+    - evolution of the number of parameters in the MPS over time
+    - evolution of the error (qi, analytical) over time
+    - evolution of the error (classical, analytical) over time
+    """
+    a=-b
+    δx = (b-a)/2**N
+    δt = times[1]
+    set_mbds(mbd, mbd) # mbd2=mbd
+    step = 0
+    global f_i # to allow to use in other simulations the same initial state (as for N=24 its generation can take over 30 min.)
+    ψmps0 = GaussianMPS(N, σ, a=a, b=b, GR=False, simplify=True, normalize=False, debug='norm')
+    f_i = ψmps0
+    # Add a normalization factor to normalize the Gaussian function:
+    ψmps0 = ψmps0 * scalefactor # b=20: *102. N=12, b=10: *204.
+    print("mps done")
+    mpo1 = mpo_combined(N, 1-v*δt/(δx**2), v*δt/(2*δx**2), v*δt/(2*δx**2), simplify=True) #changed simplify=False. MPO object, but corresponds to a time-evolution operator
+    mpo2 = mpo_combined(N, 1+v*δt/(δx**2), -v*δt/(2*δx**2), -v*δt/(2*δx**2), simplify=True)
+    print("mpo done")
+    ψ0 = ψmps0.tovector() #-> vector of size 2^N
+    print("vector done")
+    #global mattt, op1, op2
+    #mattt = mpo1.tomatrix() # doesnt work for N>=20 (crashes)
+    #print("matrix done")
+    #op1 = sp.csr_matrix(mpo1.tomatrix()) # becomes a 1024x1024 matrix, and sp.csr_matrix compresses the matrix into a Compressed Sparse Row (CSR) format
+    #op2 = sp.csr_matrix(mpo2.tomatrix())
+    # express initial MPS as 1D vector:
+    ψ_qi = [ψ0]
+    errors = [abs(ψ_qi[-1][2**(N-1)] - ψ_analytical[step])]
+    print(ψ0[2**(N-1)])
+    npars = [num_elements(ψmps0)]
+    print(f'int(ψ)={np.sum(ψ0)}, |ψ|={np.linalg.norm(ψ0)}') #state at t=0
+    for t in times[1:]:
+        print("len", len(ψmps0._data))
+        if step % 1==0: plot_functions_nonclassic(x, ψ_qi[-1], ψ_analytical[step], step)
+        step += 1
+        pars = 0
+        # QI:
+        ψmps0, err = cgs(mpo2, mpo1.apply(ψmps0))
+        ψ1 = ψmps0.tovector()
+        ψ_qi.append(ψ1)
+        npars.append(num_elements(ψmps0))
+        # error: calculated at x=0:
+        errors.append(abs(ψ_qi[-1][2**(N-1)] - ψ_analytical[step]))
+        print(step, "error", errors)
+
+    print(f"N {N}, MBD {mbd}: pars:", npars) # npars: list of length time-steps indicating the size of ψmps0 along the simulations times
+    return errors
+
+### 4. For higher-precision simulations:
