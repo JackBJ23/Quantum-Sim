@@ -2491,7 +2491,8 @@ def quantum_simulator(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, σ=
 
 # Only given N, a scalefactor, b (i.e. solve in [-b,b], total time T, evolution steps, v (diffusion coefficient), σ (for initial state), and a list of mbds to test
 # returns the Analytical, QI, and Classical (Euler) simulations.
-def get_analytical_qi_euler(N, scalefactor, b, T, steps, v, σ, mbds):
+def get_analytical_qi_euler(N, b, T, steps, v, σ, mbds):
+    scalefactor = 204.8 * 2**(N-12) / 2**(N-10)
     a=-b
     x = np.linspace(a, b, 2**N)
     times = np.linspace(0, T, steps)
@@ -2599,7 +2600,8 @@ def quantum_simulator_hn(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, 
     return ψ_euler, ψ_qi, errors_qi, errors_euler
 
 # Same as def get_analytical_qi_euler, but works for higher values of N (using quantum_simulator_hn).
-def get_analytical_qi_euler_hn(N, scalefactor, b, T, steps, v, σ, mbds):
+def get_analytical_qi_euler_hn(N, b, T, steps, v, σ, mbds):
+    scalefactor = 204.8 * 2**(N-12) / 2**(N-10)
     a=-b
     x = np.linspace(a, b, 2**N)
     times = np.linspace(0, T, steps)
