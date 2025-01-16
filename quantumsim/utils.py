@@ -2462,11 +2462,8 @@ def quantum_simulator(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, σ=
     # express initial MPS as 1D vector:
     ψ_qi = [ψ0] #[1024-length vector]
     ψ_euler = [ψ0]
-    print(ψ0[2**(N-1)])
     npars = [num_elements(ψmps0)]
-    print(f'int(ψ)={np.sum(ψ0)}, |ψ|={np.linalg.norm(ψ0)}') #state at t=0
     for t in times[1:]:
-        print("len", len(ψmps0._data))
         if step % 10 ==0: plot_functions(x, ψ_qi[-1], ψ_euler[-1], ψ_analytical[step], step)
         step += 1
         print("t: ", t)
@@ -2487,7 +2484,6 @@ def quantum_simulator(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, σ=
     # get max errors between the 2 functions and the real function:
     errors_qi = [max_abs_dif(ψ_qi[i], ψ_analytical[i]) for i in range(len(ψ_qi))]
     errors_euler = [max_abs_dif(ψ_euler[i], ψ_analytical[i]) for i in range(len(ψ_euler))]
-    print(f"N {N}, MBD {mbd}: pars:", npars) # npars: list of length time-steps indicating the size of ψmps0 along the simulations times
     print("errors_qi", errors_qi)
     print("errors_euler", errors_euler)
 
@@ -2575,11 +2571,8 @@ def quantum_simulator_hn(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, 
     # express initial MPS as 1D vector:
     ψ_qi = [ψ0] #[1024-length vector]
     ψ_euler = [ψ0]
-    print(ψ0[2**(N-1)])
     npars = [num_elements(ψmps0)]
-    print(f'int(ψ)={np.sum(ψ0)}, |ψ|={np.linalg.norm(ψ0)}') #state at t=0
     for t in times[1:]:
-        print("len", len(ψmps0._data))
         if step % 10 ==0: plot_functions(x, ψ_qi[-1], ψ_euler[-1], ψ_analytical[step], step)
         step += 1
         print("t: ", t)
@@ -2600,7 +2593,6 @@ def quantum_simulator_hn(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, 
     # get max errors between the 2 functions and the real function:
     errors_qi = [max_abs_dif(ψ_qi[i], ψ_analytical[i]) for i in range(len(ψ_qi))]
     errors_euler = [max_abs_dif(ψ_euler[i], ψ_analytical[i]) for i in range(len(ψ_euler))]
-    print(f"N {N}, MBD {mbd}: pars:", npars) # npars: list of length time-steps indicating the size of ψmps0 along the simulations times
     print("errors_qi", errors_qi)
     print("errors_euler", errors_euler)
 
@@ -2632,7 +2624,7 @@ def get_analytical_qi_euler_hn(N, scalefactor, b, T, steps, v, σ, mbds):
     errors_mbds_euler.append(errors_euler)
     return functions_qi, function_euler, ψ_analytical
 
-### 4. For higher-precision simulations:
+### 3. For higher-precision simulations:
 def get_mpos_2(n, δt, δx, v, **kwdargs):
     ## get Id, S^+ and S^-:
     id = mpo_combined(n, 1., 0, 0, **kwdargs)
@@ -2700,11 +2692,10 @@ def quantum_simulator_hp(N0, T, timesteps, v=1.0, σ=1.0, mbd=16):
     # express initial MPS as 1D vector:
     ψ_qi = [ψ0] #[1024-length vector]
     ψ_euler = [ψ0]
-    print(ψ0[2**(N-1)])
+    # print(ψ0[2**(N-1)])
     npars = [num_elements(ψmps0)]
-    print(f'int(ψ)={np.sum(ψ0)}, |ψ|={np.linalg.norm(ψ0)}') #state at t=0
+    # print(f'int(ψ)={np.sum(ψ0)}, |ψ|={np.linalg.norm(ψ0)}') #state at t=0
     for t in times[1:]:
-        print("len", len(ψmps0._data))
         if step % 1 ==0: plot_functions(x, ψ_qi[-1], ψ_euler[-1], ψ_analytical[step], step)
         step += 1
         print("t: ", t)
@@ -2725,7 +2716,6 @@ def quantum_simulator_hp(N0, T, timesteps, v=1.0, σ=1.0, mbd=16):
     # get max errors between the 2 functions and the real function:
     errors_qi = [max_abs_dif(ψ_qi[i], ψ_analytical[i]) for i in range(len(ψ_qi))]
     errors_euler = [max_abs_dif(ψ_euler[i], ψ_analytical[i]) for i in range(len(ψ_euler))]
-    print(f"N {N}, MBD {mbd}: pars:", npars) # npars: list of length time-steps indicating the size of ψmps0 along the simulations times
     print("errors_qi", errors_qi)
     print("errors_euler", errors_euler)
 
