@@ -2448,7 +2448,6 @@ def quantum_simulator(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, σ=
     δx = (b-a)/2**N
     δt = times[1]
     set_mbds(mbd, mbd) # mbd2=mbd
-    print("MBD", quantumsim.Config.mbd)
     step = 0
     ψmps0 = GaussianMPS(N, σ, a=a, b=b, GR=False, simplify=True, normalize=False, debug='norm')
     # Add a normalization factor to normalize the Gaussian function:  
@@ -2550,7 +2549,6 @@ def quantum_simulator_hn(N, scalefactor, x, times, ψ_analytical, b=10., v=1.0, 
     δx = (b-a)/2**N
     δt = times[1]
     set_mbds(mbd, mbd) # mbd2=mbd
-    print("MBD", quantumsim.Config.mbd)
     step = 0
     ψmps0 = GaussianMPS(N, σ, a=a, b=b, GR=False, simplify=True, normalize=False, debug='norm')
     print("mps done")
