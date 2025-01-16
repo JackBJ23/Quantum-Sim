@@ -2394,7 +2394,7 @@ def max_abs_dif(f1, f2):
 
 def num_elements(ψmps0):
     pars = 0
-    for j in range(N): # calculate the number of elements in each block of the MPS (N blocks)
+    for j in range(len(ψmps0._data)): # calculate the number of elements in each block of the MPS (N blocks)
         pars += ψmps0._data[j].shape[0] * ψmps0._data[j].shape[1] * ψmps0._data[j].shape[2]
     return pars
 
