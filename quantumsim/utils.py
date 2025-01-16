@@ -2399,7 +2399,7 @@ def num_elements(ψmps0):
     return pars
 
 # For making the animation:
-def get_video(mps_fcts, ψ_euler, ψ_analytical, duration_t, namefile):
+def get_video(x, mps_fcts, ψ_euler, ψ_analytical, duration_t, namefile):
   filenames = []
   for i in range(len(ψ_analytical)): # n_times
       plt.figure(figsize=(8, 6))
